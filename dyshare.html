@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抖音H5挂载能力</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      font-size: 13px;
+      color: #606266;
+    }
+
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    .form {
+      width: 100%;
+      margin: 0 auto;
+      padding: 18px;
+      box-sizing: border-box;
+      max-width: 400px;
+    }
+
+    .form-item {
+      width: 100%;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .form-item .text {
+      width: 100%;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+      background-color: #fff;
+      background-image: none;
+      border-radius: 4px;
+      border: 1px solid #dcdfe6;
+      color: #606266;
+      display: inline-block;
+      font-size: inherit;
+      outline: 0;
+      padding: 0 15px;
+      height: 32px;
+      line-height: 32px;
+    }
+
+    .form-item .text:focus {
+      border-color: #409eff;
+    }
+
+    .form-item .text::placeholder {
+      color: #aaa;
+    }
+
+    .form-item .file {
+      width: 120px;
+      height: 32px;
+      z-index: 2;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+    }
+
+    .form-item .file_box {
+      width: 120px;
+      z-index: 1;
+      line-height: 32px;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    .form-item .file_box.primary {
+      background-color: #409eff;
+      color: #fff;
+      border: 1px solid #409eff;
+      margin: auto;
+    }
+
+    .form-item .file_box.default {
+      background-color: #fff;
+      color: #606266;
+      border: 1px solid #dcdfe6;
+    }
+
+    .loading {
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: rgba(0, 0, 0, .7);
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      padding-top: 45vh;
+      box-sizing: border-box;
+    }
+
+    #select {
+      line-height: 32px;
+      position: absolute;
+      background-color: white;
+      z-index: 3;
+      width: calc(100vw - 36px);
+      max-width: 364px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #select div {
+      border-bottom: 1px solid #ddd;
+      background-color: #f8f8f8;
+      box-sizing: border-box;
+      padding: 0 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="form">
+    <div class="form-item">
+      <div>抖音H5挂载能力</div>
+    </div>
+    <div class="form-item">
+      <input class="text" type="text" placeholder="搜索挂载剧集" name="searchTitle" oninput="changeInput(this)">
+      <div id="select"></div>
+    </div>
+    <div class="form-item" style="display: none;">
+      <input class="text" type="text" name="id" placeholder="剧集ID">
+    </div>
+    <div class="form-item">
+      <input class="text" type="text" name="title" id="title" placeholder="小程序挂载标题">
+    </div>
+    <div class="form-item">
+      <input class="text" type="text" name="episode" placeholder="打开第几集">
+    </div>
+    <div class="form-item">
+      <input class="text" type="text" name="openid" placeholder="达人uid">
+    </div>
+    <!-- <div class="form-item">
+      <input class="text" type="text" name="desc" placeholder="小程序挂载描述">
+    </div>
+    <div class="form-item">
+      <input class="text" type="text" name="hashtag" placeholder="视频挂载话题">
+    </div> -->
+    <div class="form-item">
+      <div class="file_box default">选择视频</div>
+      <input class="file" id="file" type="file" accept="video/*" onchange="changeFile(this)">
+      <div id="file-name">请选择文件，仅支持mp4/mov</div>
+    </div>
+    <div class="form-item">
+      <div class="file_box primary" onclick="action()" id="submit" style="display: none;">提交挂载</div>
+    </div>
+  </div>
+  <div class="loading" style="display: none;">0 %<br /><br />视频上传中，请耐心等待</div>
+
+  <!-- <script src="https://qiniu.rongjuwh.cn/vconsole.min.js"></script>
+  <script>
+      var vConsole = new VConsole();
+      console.log('vConsole');
+  </script> -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qiniu-js/3.4.1/qiniu.min.js"></script>
+  <script
+    src="https://lf3-static.bytednsdoc.com/obj/eden-cn/fljpeh7hozbf/douyin_open/cdn/dy_open_util_v0.0.6.umd.js"></script>
+  <script>
+    var form = {
+      id: '',
+      episode: '',
+      openid: '',
+      title: '',
+      // desc: '',
+      // hashtag: ''
+    };
+
+    var theaterList = [];
+    window.onload = function () {
+      let xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://ks.whcmwh.cn/api/applet/config');
+      xhr.setRequestHeader('app-origin', 'ks653021949898222467');
+      xhr.setRequestHeader('user-origin', 1);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(null);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+            let res = JSON.parse(xhr.responseText);
+            if (res.code == 200) {
+              theaterList = res.data.AppletTheaterInfo;
+            }
+          }
+        }
+      }
+    }
+
+
+    function changeInput(ev) {
+      if (ev.value) {
+        let data = theaterList.filter(item => item.title.indexOf(ev.value) != -1);
+        let html = ''
+        data.forEach(item => {
+          html += `<div onclick="selectTheater('${item.parent_id}','${item.share_title}', '${item.title}', this)">${item.title}-${item.parent_id}</div>`
+        })
+        document.getElementById('select').innerHTML = html;
+      } else {
+        document.getElementById('select').innerHTML = '';
+        document.getElementsByName('id')[0].value = '';
+        document.getElementsByName('title')[0].value = '';
+      }
+    }
+
+    function selectTheater(id, share_title, title, ev) {
+      ev.parentNode.innerHTML = '';
+      document.getElementsByName('id')[0].value = id;
+      document.getElementsByName('title')[0].value = share_title;
+      document.getElementsByName('searchTitle')[0].value = title + '-' + id;
+    }
+
+    var fileObj = null;
+    function action() {
+      try {
+        Object.keys(form).forEach(key => {
+          form[key] = document.getElementsByName(key)[0].value;
+          if (!form[key]) throw new Error('请完善表单');
+        })
+        if (!fileObj) {
+          throw new Error('请选择视频');
+        }
+        let xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://xs.shenghuigz.cn/douyin/h5/generate/signature');
+        xhr.send(null);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+              let res = JSON.parse(xhr.responseText);
+              if (res.code == 200) {
+                const options = {
+                  share_type: "h5",
+                  client_key: 'awbm1w42wsip1cbp',
+                  nonce_str: res.data.nonce_str,
+                  timestamp: res.data.timestamp,
+                  signature: res.data.signature,
+                  hashtag_list: JSON.stringify([]),
+                  video_path: fileObj,
+                  micro_app_info: JSON.stringify({
+                    appId: "ttfa6f8cd26551d6c901",
+                    appTitle: form.title,
+                    description: '点击观看精彩后续',
+                    appUrl: `pages/theater/theater?id=${form.id}&msgId=${form.openid}&episode=${form.episode}`,
+                  }),
+                };
+                const schema = window.dy_open_util.serialize(options);
+                window.location.href = schema;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        window.alert(error)
+      }
+    }
+
+    function changeFile(ev) {
+      let files = ev.files;
+      if (files && files[0]) {
+        if (/\.mov$/i.test(files[0].name)) {
+          if (files[0].size / 1024 / 1024 > 100) {
+            window.alert('文件不允许超过100MB!');
+            return;
+          }
+        } else if (/\.mp4$/i.test(files[0].name)) {
+          // mp4
+        } else {
+          window.alert('不允许的视频格式');
+          return;
+        }
+        document.getElementById('file-name').innerText = files[0].name;
+        document.getElementsByClassName('loading')[0].style = 'display: block;';
+        const key = uuid() + files[0].name.substring(files[0].name.lastIndexOf('.'));
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', 'https://xs.shenghuigz.cn/mp/qiniu/no/auth/get/token/' + key);
+        xhr.send(null);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
+              let res = JSON.parse(xhr.responseText);
+              if (res.code == 200) {
+                const token = res.data.token;
+                const putExtra = {};
+                const config = {};
+                const observable = qiniu.upload(files[0], key, token, putExtra, config);
+                const observer = {
+                  next: function (_res) {
+                    document.getElementsByClassName('loading')[0].innerHTML = `${_res.total.percent.toFixed(2)} %<br/><br/>视频上传中，请耐心等待`;
+                  },
+                  error: function (err) {
+                    console.log(err);
+                  },
+                  complete: function () {
+                    fileObj = res.data.url;
+                    alert('上传成功！');
+                    document.getElementsByClassName('loading')[0].style = 'display: none;';
+                    document.getElementById('submit').style = '';
+                  }
+                }
+                const subscription = observable.subscribe(observer);
+              }
+            }
+          }
+        }
+      }
+    }
+    function uuid() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0,
+          v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+  </script>
+</body>
+
+</html>
