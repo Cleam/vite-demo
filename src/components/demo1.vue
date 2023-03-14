@@ -3,7 +3,7 @@ import { storeToRefs } from "pinia";
 import { reactive, ref, toRef } from "vue";
 import { useAppStore } from "../sotres/appStore";
 
-defineProps<{ msg: string }>();
+defineProps<{ title: string }>();
 const appStore = useAppStore();
 const { count: c } = storeToRefs(appStore);
 
@@ -19,7 +19,7 @@ const increment = appStore.increment; // toRef(appStore, "increment");
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
+  <h1>{{ title }}</h1>
 
   <div class="card">
     <button type="button" @click="count2++">count2 is {{ count2 }}</button>
